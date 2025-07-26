@@ -51,7 +51,6 @@ return [
 
 ```php
 use zjkal\WebmanTurnstile\Turnstile;
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
 
 $token = $request->post('cf-turnstile-response');
 
@@ -69,7 +68,6 @@ if (Turnstile::check($token)) {
 
 ```php
 use zjkal\WebmanTurnstile\Turnstile;
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
 
 // 验证 Turnstile token（IP 地址会自动获取）
 $token = $request->post('cf-turnstile-response');

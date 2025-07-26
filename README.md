@@ -1,15 +1,5 @@
 # Webman Turnstile
 
-一个用于 Webman 框架的 Cloudflare Turnstile 验证组件。
-
-## 版本兼容性
-
-- ✅ Webman 1.x
-- ✅ Webman 2.x
-- 📋 PHP >= 7.4
-
-## 简介
-
 Webman Turnstile 是一个专为 Webman 框架设计的 Composer 包，用于简化 Cloudflare Turnstile 的后端验证流程。通过简单的配置和静态方法调用，您可以轻松地在 Webman 项目中集成 Turnstile 验证功能。
 
 ## 特性
@@ -38,7 +28,7 @@ composer require zjkal/webman-turnstile
 ```php
 <?php
 return [
-    'enable' => true,
+    'enable' => true, // 设置为 false 可关闭 Turnstile 验证, 用于调试和开发
     'secret_key' => 'your-turnstile-secret-key',
     'timeout' => 30, // 验证超时时间（秒）
     'verify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
@@ -56,31 +46,6 @@ return [
 
 > 💡 **提示**: 所有验证方法的 IP 参数都是可选的。如果不传入 IP 参数，系统会自动通过 Webman 的 `request()` 助手函数获取客户端真实 IP 地址，让使用更加简便。
 
-### 基本验证
-
-```php
-use zjkal\WebmanTurnstile\Turnstile;
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
-
-// 验证 Turnstile token（IP 地址会自动获取）
-$token = $request->post('cf-turnstile-response');
-
-try {
-    $result = Turnstile::verify($token);
-    
-    if ($result['success']) {
-        // 验证成功
-        echo "验证通过！";
-    } else {
-        // 验证失败
-        echo "验证失败：" . implode(', ', $result['error-codes']);
-    }
-} catch (TurnstileException $e) {
-    // 处理异常（如密钥未配置、网络错误等）
-    echo "验证异常：" . $e->getMessage();
-    echo "错误代码：" . implode(', ', $e->getErrorCodes());
-}
-```
 
 ### 快速验证（仅返回布尔值）
 
@@ -90,18 +55,35 @@ use zjkal\WebmanTurnstile\Exception\TurnstileException;
 
 $token = $request->post('cf-turnstile-response');
 
-try {
-    if (Turnstile::check($token)) {
-        // 验证通过
-        echo "验证成功！";
-    } else {
-        // 验证失败
-        echo "验证失败！";
-    }
-} catch (TurnstileException $e) {
-    // 处理异常（如密钥未配置、网络错误等）
-    echo "验证异常：" . $e->getMessage();
+if (Turnstile::check($token)) {
+    // 验证通过
+    echo "验证成功！";
+} else {
+    // 验证失败
+    echo "验证失败！";
 }
+
+```
+
+### 基本验证 (返回详细结果)
+
+```php
+use zjkal\WebmanTurnstile\Turnstile;
+use zjkal\WebmanTurnstile\Exception\TurnstileException;
+
+// 验证 Turnstile token（IP 地址会自动获取）
+$token = $request->post('cf-turnstile-response');
+
+$result = Turnstile::verify($token);
+
+if ($result['success']) {
+    // 验证成功
+    echo "验证通过！";
+} else {
+    // 验证失败
+    echo "验证失败：" . implode(', ', $result['error-codes']);
+}
+
 ```
 
 ## 前端集成
@@ -116,14 +98,14 @@ try {
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
-    <form method="POST" action="/verify">
-        <!-- 其他表单字段 -->
-        
-        <!-- Turnstile 组件 -->
-        <div class="cf-turnstile" data-sitekey="your-site-key"></div>
-        
-        <button type="submit">提交</button>
-    </form>
+<form method="POST" action="/verify">
+    <!-- 其他表单字段 -->
+
+    <!-- Turnstile 组件 -->
+    <div class="cf-turnstile" data-sitekey="your-site-key"></div>
+
+    <button type="submit">提交</button>
+</form>
 </body>
 </html>
 ```
@@ -135,11 +117,13 @@ try {
 验证 Turnstile token 并返回详细结果。
 
 **参数：**
+
 - `$token` (string): Turnstile 响应 token
 - `$remoteIp` (string, 可选): 客户端 IP 地址，不传则自动从 request() 获取
 
 **返回值：**
 返回包含验证结果的数组：
+
 ```php
 [
     'success' => true|false,
@@ -152,6 +136,7 @@ try {
 ```
 
 **异常：**
+
 - `TurnstileException`: 当密钥未配置、网络请求失败或响应解析失败时抛出
 
 ### Turnstile::check($token, $remoteIp = null)
@@ -159,14 +144,17 @@ try {
 快速验证方法，仅返回布尔值。
 
 **参数：**
+
 - `$token` (string): Turnstile 响应 token
 - `$remoteIp` (string, 可选): 客户端 IP 地址，不传则自动从 request() 获取
 
 **返回值：**
+
 - `true`: 验证成功
 - `false`: 验证失败
 
 **异常：**
+
 - `TurnstileException`: 当密钥未配置、网络请求失败或响应解析失败时抛出
 
 ## 异常处理
@@ -218,6 +206,12 @@ try {
 - `timeout-or-duplicate`: 超时或重复提交
 - `internal-error`: 内部错误
 
+## 版本兼容性
+
+- ✅ Webman 1.x
+- ✅ Webman 2.x
+- 📋 PHP >= 7.4
+
 ## 许可证
 
 MIT License
@@ -229,6 +223,7 @@ MIT License
 ## 更新日志
 
 ### v1.0.0
+
 - 初始版本发布
 - 支持基本的 Turnstile 验证功能
 - 自动配置文件生成

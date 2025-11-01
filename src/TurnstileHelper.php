@@ -1,8 +1,8 @@
 <?php
 
-namespace zjkal\WebmanTurnstile;
+namespace plugin\zjkal\turnstile;
 
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
+use plugin\zjkal\turnstile\Exception\TurnstileException;
 
 /**
  * Turnstile 助手类
@@ -129,7 +129,7 @@ class TurnstileHelper
      */
     public static function validateConfig(): array
     {
-        $config = config('turnstile', []);
+        $config = config('plugin.zjkal.turnstile.app', []);
         $errors = [];
 
         if (!$config['enable']) {

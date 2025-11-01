@@ -9,22 +9,7 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-    
-    <coverage>
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
-        <exclude>
-            <directory>src/Example</directory>
-        </exclude>
-    </coverage>
-    
-    <logging>
-        <junit outputFile="junit.xml"/>
-        <testdoxHtml outputFile="testdox.html"/>
-        <testdoxText outputFile="testdox.txt"/>
-    </logging>
-    
+
     <coverage processUncoveredFiles="true">
         <include>
             <directory suffix=".php">src</directory>

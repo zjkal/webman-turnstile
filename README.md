@@ -1,11 +1,11 @@
 # Webman Turnstile
 
-Webman Turnstile 是一个专为 Webman 框架设计的 Composer 包，用于简化 Cloudflare Turnstile 的后端验证流程。通过简单的配置和静态方法调用，您可以轻松地在 Webman 项目中集成 Turnstile 验证功能。
+Webman Turnstile 是一个专为 Webman 框架设计的 Composer 插件，用于简化 Cloudflare Turnstile 的后端验证流程。通过简单的配置和静态方法调用，您可以轻松地在 Webman 项目中集成 Turnstile 验证功能。
 
 ## 特性
 
 - 🚀 简单易用的静态方法调用
-- ⚙️ 自动生成配置文件
+- ⚙️ 自动生成插件配置文件
 - 🔒 安全的后端验证
 - 📦 完全兼容 Webman 框架
 - 🛠️ 支持自定义配置
@@ -19,11 +19,11 @@ Webman Turnstile 是一个专为 Webman 框架设计的 Composer 包，用于简
 composer require zjkal/webman-turnstile
 ```
 
-安装完成后，配置文件会自动生成到 `config/turnstile.php`。
+安装完成后，插件配置文件会自动生成到 `config/plugin/zjkal/turnstile/app.php`。
 
 ## 配置
 
-编辑配置文件 `config/turnstile.php`：
+编辑配置文件 `config/plugin/zjkal/turnstile/app.php`：
 
 ```php
 <?php
@@ -32,6 +32,8 @@ return [
     'secret_key' => 'your-turnstile-secret-key',
     'timeout' => 30, // 验证超时时间（秒）
     'verify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+    'verify_hostname' => false,
+    'allowed_hostnames' => [],
 ];
 ```
 
@@ -41,16 +43,17 @@ return [
 - `secret_key`: Cloudflare Turnstile 的密钥
 - `timeout`: HTTP 请求超时时间
 - `verify_url`: Turnstile 验证接口地址
+- `verify_hostname`: 是否验证返回的主机名
+- `allowed_hostnames`: 当启用主机名验证时允许的主机名列表
 
 ## 使用方法
 
-> 💡 **提示**: 所有验证方法的 IP 参数都是可选的。如果不传入 IP 参数，系统会自动通过 Webman 的 `request()` 助手函数获取客户端真实 IP 地址，让使用更加简便。
-
+> 💡 提示: 所有验证方法的 IP 参数都是可选的。如果不传入 IP 参数，系统会自动通过 Webman 的 `request()` 助手函数获取客户端真实 IP 地址，让使用更加简便。
 
 ### 快速验证（仅返回布尔值）
 
 ```php
-use zjkal\WebmanTurnstile\Turnstile;
+use plugin\\zjkal\\turnstile\\Turnstile;
 
 $token = $request->post('cf-turnstile-response');
 
@@ -61,13 +64,12 @@ if (Turnstile::check($token)) {
     // 验证失败
     echo "验证失败！";
 }
-
 ```
 
 ### 基本验证 (返回详细结果)
 
 ```php
-use zjkal\WebmanTurnstile\Turnstile;
+use plugin\\zjkal\\turnstile\\Turnstile;
 
 // 验证 Turnstile token（IP 地址会自动获取）
 $token = $request->post('cf-turnstile-response');
@@ -81,7 +83,6 @@ if ($result['success']) {
     // 验证失败
     echo "验证失败：" . implode(', ', $result['error-codes']);
 }
-
 ```
 
 ## 前端集成
@@ -119,49 +120,11 @@ if ($result['success']) {
 - `$token` (string): Turnstile 响应 token
 - `$remoteIp` (string, 可选): 客户端 IP 地址，不传则自动从 request() 获取
 
-**返回值：**
-返回包含验证结果的数组：
+### 异常处理示例
 
 ```php
-[
-    'success' => true|false,
-    'challenge_ts' => '2023-01-01T00:00:00.000Z', // 挑战完成时间
-    'hostname' => 'example.com', // 验证的主机名
-    'error-codes' => [], // 错误代码数组
-    'action' => 'login', // 动作名称（如果设置）
-    'cdata' => 'custom_data' // 自定义数据（如果设置）
-]
-```
-
-**异常：**
-
-- `TurnstileException`: 当密钥未配置、网络请求失败或响应解析失败时抛出
-
-### Turnstile::check($token, $remoteIp = null)
-
-快速验证方法，仅返回布尔值。
-
-**参数：**
-
-- `$token` (string): Turnstile 响应 token
-- `$remoteIp` (string, 可选): 客户端 IP 地址，不传则自动从 request() 获取
-
-**返回值：**
-
-- `true`: 验证成功
-- `false`: 验证失败
-
-**异常：**
-
-- `TurnstileException`: 当密钥未配置、网络请求失败或响应解析失败时抛出
-
-## 异常处理
-
-当发生配置错误、网络错误或响应解析错误时，验证方法会抛出 `TurnstileException` 异常。您可以通过捕获异常来处理这些错误情况：
-
-```php
-use zjkal\WebmanTurnstile\Turnstile;
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
+use plugin\\zjkal\\turnstile\\Turnstile;
+use plugin\\zjkal\\turnstile\\Exception\\TurnstileException;
 
 try {
     $result = Turnstile::verify($token);

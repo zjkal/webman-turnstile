@@ -1,14 +1,27 @@
 <?php
 
-namespace zjkal\WebmanTurnstile;
+namespace plugin\zjkal\turnstile;
 
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
+use plugin\zjkal\turnstile\Exception\TurnstileException;
 
 /**
  * Cloudflare Turnstile 验证类
  */
 class Turnstile
 {
+    // 允许测试或外部注入配置覆盖
+    private static ?array $configOverride = null;
+
+    public static function setConfig(array $config): void
+    {
+        self::$configOverride = $config;
+    }
+
+    public static function clearConfig(): void
+    {
+        self::$configOverride = null;
+    }
+
     /**
      * 获取配置
      *
@@ -16,7 +29,47 @@ class Turnstile
      */
     private static function getConfig(): array
     {
-        return config('turnstile', []);
+        // 默认配置（尽量保持与插件配置一致）
+        $defaults = [
+            'enable' => true,
+            'secret_key' => '',
+            'timeout' => 30,
+            'verify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            'verify_hostname' => false,
+            'allowed_hostnames' => [],
+        ];
+
+        // 测试或外部注入的配置覆盖优先
+        if (is_array(self::$configOverride)) {
+            return array_merge($defaults, self::$configOverride);
+        }
+
+        // 优先使用 Webman 的全局 config 函数
+        try {
+            $cfg = \config('plugin.zjkal.turnstile.app', []);
+            if (is_array($cfg)) {
+                return array_merge($defaults, $cfg);
+            }
+        } catch (\Throwable $e) {
+            // 测试环境可能不存在全局 config，回退到本地文件
+        }
+    
+        // 回退：尝试加载宿主项目或插件内的配置文件
+        $paths = [
+            dirname(__DIR__) . '/config/plugin/zjkal/turnstile/app.php',
+            __DIR__ . '/config/plugin/zjkal/turnstile/app.php',
+        ];
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                $cfg = include $path;
+                if (is_array($cfg)) {
+                    return array_merge($defaults, $cfg);
+                }
+            }
+        }
+    
+        // 默认配置
+        return $defaults;
     }
 
     /**
@@ -94,17 +147,32 @@ class Turnstile
     }
 
     /**
-     * 快速验证 Turnstile token（仅返回布尔值）
+     * 发起 HTTP 请求
      *
-     * @param string $token Turnstile 响应 token
-     * @param string|null $remoteIp 客户端 IP 地址（可选，不传则自动获取）
-     * @return bool 验证是否成功
-     * @throws TurnstileException 当密钥未配置、网络请求失败或响应解析失败时抛出
+     * @param string $url 请求地址
+     * @param array $postData POST 数据
+     * @param int $timeout 超时时间（秒）
+     * @return string|false 响应内容或失败返回 false
      */
-    public static function check(string $token, ?string $remoteIp = null): bool
+    private static function makeRequest(string $url, array $postData, int $timeout)
     {
-        $result = self::verify($token, $remoteIp);
-        return $result['success'] ?? false;
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            curl_close($ch);
+            return false;
+        }
+
+        curl_close($ch);
+        return $response;
     }
 
     /**
@@ -124,48 +192,12 @@ class Turnstile
     }
 
     /**
-     * 发送 HTTP 请求
-     *
-     * @param string $url 请求 URL
-     * @param array $postData POST 数据
-     * @param int $timeout 超时时间
-     * @return string 响应内容
-     * @throws TurnstileException 当 HTTP 请求失败时抛出
-     */
-    private static function makeRequest(string $url, array $postData, int $timeout = 30)
-    {
-        $postFields = http_build_query($postData);
-        
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => [
-                    'Content-Type: application/x-www-form-urlencoded',
-                    'Content-Length: ' . strlen($postFields),
-                    'User-Agent: Webman-Turnstile/1.0'
-                ],
-                'content' => $postFields,
-                'timeout' => $timeout,
-            ]
-        ]);
-
-        $response = @file_get_contents($url, false, $context);
-        
-        if ($response === false) {
-            $error = error_get_last();
-            throw new TurnstileException('Turnstile HTTP request failed: ' . ($error['message'] ?? 'Unknown error'), ['network-error']);
-        }
-
-        return $response;
-    }
-
-    /**
      * 获取错误代码的中文描述
      *
-     * @param string $errorCode 错误代码
+     * @param string $code 错误代码
      * @return string 错误描述
      */
-    public static function getErrorMessage(string $errorCode): string
+    public static function getErrorMessage(string $code): string
     {
         $messages = [
             'missing-input-secret' => '缺少密钥参数',
@@ -175,14 +207,13 @@ class Turnstile
             'bad-request' => '请求格式错误',
             'timeout-or-duplicate' => '超时或重复提交',
             'internal-error' => '内部错误',
-            'service-disabled' => '服务已禁用',
-            'missing-secret-key' => '未配置密钥',
+            'service-disabled' => '验证服务未启用',
+            'invalid-response' => '响应解析失败',
             'network-error' => '网络请求失败',
-            'invalid-response' => '响应格式错误',
-            'invalid-hostname' => '主机名验证失败',
+            'invalid-hostname' => '主机名不在允许列表'
         ];
 
-        return $messages[$errorCode] ?? '未知错误';
+        return $messages[$code] ?? '未知错误';
     }
 
     /**
@@ -194,5 +225,15 @@ class Turnstile
     public static function getErrorMessages(array $errorCodes): array
     {
         return array_map([self::class, 'getErrorMessage'], $errorCodes);
+    }
+
+    public static function check(string $token, ?string $remoteIp = null): bool
+    {
+        try {
+            $result = self::verify($token, $remoteIp);
+            return $result['success'] === true;
+        } catch (TurnstileException $e) {
+            return false;
+        }
     }
 }

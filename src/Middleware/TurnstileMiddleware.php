@@ -1,27 +1,16 @@
 <?php
 
-namespace zjkal\WebmanTurnstile\Middleware;
+namespace plugin\zjkal\turnstile\Middleware;
 
 use Webman\MiddlewareInterface;
 use support\Response;
-use support\Request;
-use zjkal\WebmanTurnstile\Turnstile;
+use Webman\Http\Request as HttpRequest;
+use plugin\zjkal\turnstile\Turnstile;
 
-/**
- * Turnstile 验证中间件
- */
 class TurnstileMiddleware implements MiddlewareInterface
 {
-    /**
-     * 处理请求
-     *
-     * @param Request $request 请求对象
-     * @param callable $handler 下一个处理器
-     * @return Response 响应对象
-     */
-    public function process(Request $request, callable $handler): Response
+    public function process(HttpRequest $request, callable $handler): \Webman\Http\Response
     {
-        // 只对 POST 请求进行验证
         if ($request->method() !== 'POST') {
             return $handler($request);
         }
@@ -45,9 +34,7 @@ class TurnstileMiddleware implements MiddlewareInterface
             ], JSON_UNESCAPED_UNICODE));
         }
 
-        // 将验证结果添加到请求属性中
         $request->turnstile_result = $result;
-
         return $handler($request);
     }
 }

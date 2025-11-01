@@ -1,12 +1,12 @@
 <?php
 
-namespace zjkal\WebmanTurnstile\Example;
+namespace plugin\zjkal\turnstile\Example;
 
 use support\Request;
 use support\Response;
-use zjkal\WebmanTurnstile\Turnstile;
-use zjkal\WebmanTurnstile\TurnstileHelper;
-use zjkal\WebmanTurnstile\Exception\TurnstileException;
+use plugin\zjkal\turnstile\Turnstile;
+use plugin\zjkal\turnstile\TurnstileHelper;
+use plugin\zjkal\turnstile\Exception\TurnstileException;
 
 /**
  * Turnstile 示例控制器
@@ -50,177 +50,88 @@ class ExampleController
     <form method="POST" action="/example/verify">
         <div class="form-group">
             <label for="name">姓名:</label>
-            <input type="text" id="name" name="name" required>
+            <input type="text" id="name" name="name" placeholder="请输入您的姓名" required>
         </div>
         
         <div class="form-group">
             <label for="email">邮箱:</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" placeholder="请输入您的邮箱" required>
         </div>
         
-        <div class="form-group">
-            <label>人机验证:</label>
-            ' . TurnstileHelper::generateHtml($siteKey) . '
-        </div>
-        
+        <!-- Turnstile 组件 -->
+        ' . TurnstileHelper::generateHtml($siteKey) . '
+
         <button type="submit">提交</button>
     </form>
-    
-    <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 4px;">
-        <h3>使用说明:</h3>
-        <ol>
-            <li>将上面的 <code>your-site-key-here</code> 替换为你的 Cloudflare Turnstile 站点密钥</li>
-            <li>在配置文件中设置你的密钥: <code>config/turnstile.php</code></li>
-            <li>提交表单测试验证功能</li>
-        </ol>
-    </div>
 </body>
 </html>';
 
-        return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], $html);
+        return response($html);
     }
 
     /**
-     * 处理表单提交和验证
+     * 处理验证请求
      *
      * @param Request $request
      * @return Response
      */
     public function verify(Request $request): Response
     {
-        $name = $request->post('name');
-        $email = $request->post('email');
-        
-        // 方法1: 使用助手类从请求中验证
-        try {
-            $result = TurnstileHelper::verifyFromRequestOrFail($request);
-            
-            $html = $this->generateResultPage(true, [
-                'message' => '验证成功！',
-                'name' => $name,
-                'email' => $email,
-                'turnstile_result' => $result
-            ]);
-            
-        } catch (\Exception $e) {
-            $html = $this->generateResultPage(false, [
-                'message' => $e->getMessage(),
-                'name' => $name,
-                'email' => $email
-            ]);
-        }
+        $data = [
+            'name' => $request->post('name'),
+            'email' => $request->post('email'),
+        ];
 
-        return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], $html);
-    }
-
-    /**
-     * API 验证示例
-     *
-     * @param Request $request
-     * @return Response
-     */
-    public function apiVerify(Request $request): Response
-    {
-        // 方法2: 直接使用 Turnstile 类验证（IP 会自动获取）
-        $token = $request->post('cf-turnstile-response');
-        
         try {
-            $result = Turnstile::verify($token);
+            // 验证 Turnstile token
+            $result = TurnstileHelper::verifyFromRequest($request);
             
-            if ($result['success']) {
-                return json([
-                    'success' => true,
-                    'message' => '验证成功',
-                    'data' => [
-                        'challenge_ts' => $result['challenge_ts'] ?? null,
-                        'hostname' => $result['hostname'] ?? null,
-                    ]
-                ]);
-            } else {
-                return json([
-                    'success' => false,
-                    'message' => '验证失败',
-                    'errors' => Turnstile::getErrorMessages($result['error-codes'] ?? []),
-                    'error_codes' => $result['error-codes'] ?? []
-                ], 400);
-            }
+            $success = $result['success'] ?? false;
+            $data['turnstile_result'] = $result;
+
+            $html = $this->renderResult($success, $data);
+            return response($html);
         } catch (TurnstileException $e) {
-            return json([
-                'success' => false,
-                'message' => '验证异常：' . $e->getMessage(),
-                'error_codes' => $e->getErrorCodes()
-            ], 500);
+            $errorHtml = $this->renderResult(false, $data, $e->getMessage());
+            return response($errorHtml)->withStatus(400);
         }
     }
 
     /**
-     * 快速验证示例
-     *
-     * @param Request $request
-     * @return Response
+     * 渲染结果页面
      */
-    public function quickCheck(Request $request): Response
+    private function renderResult(bool $success, array $data, string $errorMessage = ''): string
     {
-        // 方法3: 快速验证（仅返回布尔值）
-        $isValid = TurnstileHelper::checkFromRequest($request);
-        
-        return json([
-            'valid' => $isValid,
-            'message' => $isValid ? '验证通过' : '验证失败'
-        ]);
-    }
-
-    /**
-     * 获取配置状态
-     *
-     * @param Request $request
-     * @return Response
-     */
-    public function status(Request $request): Response
-    {
-        $status = TurnstileHelper::getStatus();
-        return json($status);
-    }
-
-    /**
-     * 生成结果页面
-     *
-     * @param bool $success 是否成功
-     * @param array $data 数据
-     * @return string HTML 内容
-     */
-    private function generateResultPage(bool $success, array $data): string
-    {
-        $resultClass = $success ? 'success' : 'error';
-        $resultTitle = $success ? '✅ 成功' : '❌ 失败';
+        $statusClass = $success ? 'success' : 'error';
+        $statusText = $success ? '验证成功' : '验证失败';
         
         $html = '<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>验证结果</title>
+    <title>Turnstile 验证结果</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-        .result { padding: 20px; border-radius: 4px; margin-bottom: 20px; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 4px; }
         .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .data { background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 20px; }
-        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
-        a { color: #007cba; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        pre { background: #f6f8fa; padding: 12px; border-radius: 4px; }
+        a { display: inline-block; margin-top: 20px; color: #007cba; }
     </style>
 </head>
 <body>
-    <h1>验证结果</h1>
-    
-    <div class="result ' . $resultClass . '">
-        <h2>' . $resultTitle . '</h2>
-        <p>' . htmlspecialchars($data['message']) . '</p>
-    </div>
-    
-    <div class="data">
-        <h3>提交的数据:</h3>
+    <h1>Turnstile 验证结果</h1>
+
+    <div class="result ' . $statusClass . '">
+        <h2>' . $statusText . '</h2>';
+
+        if (!$success && $errorMessage) {
+            $html .= '<p><strong>错误信息:</strong> ' . htmlspecialchars($errorMessage) . '</p>';
+        }
+
+        $html .= '
+        <h3>提交数据:</h3>
         <p><strong>姓名:</strong> ' . htmlspecialchars($data['name'] ?? '') . '</p>
         <p><strong>邮箱:</strong> ' . htmlspecialchars($data['email'] ?? '') . '</p>
     </div>';

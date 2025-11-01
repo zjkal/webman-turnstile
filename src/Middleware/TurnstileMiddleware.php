@@ -5,7 +5,7 @@ namespace zjkal\turnstile\Middleware;
 use Webman\MiddlewareInterface;
 use support\Response;
 use Webman\Http\Request as HttpRequest;
-use plugin\zjkal\turnstile\Turnstile;
+use zjkal\turnstile\Turnstile;
 
 class TurnstileMiddleware implements MiddlewareInterface
 {

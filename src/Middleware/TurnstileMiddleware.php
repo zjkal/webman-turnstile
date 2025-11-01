@@ -1,6 +1,6 @@
 <?php
 
-namespace plugin\zjkal\turnstile\Middleware;
+namespace zjkal\turnstile\Middleware;
 
 use Webman\MiddlewareInterface;
 use support\Response;

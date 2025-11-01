@@ -1,6 +1,6 @@
 <?php
 
-namespace plugin\zjkal\turnstile\Exception;
+namespace zjkal\turnstile\Exception;
 
 use Exception;
 

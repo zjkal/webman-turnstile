@@ -20,9 +20,9 @@ namespace {
     }
 }
 
-namespace plugin\zjkal\turnstile\Tests {
+namespace zjkal\turnstile\Tests {
     use PHPUnit\Framework\TestCase;
-    use plugin\zjkal\turnstile\Turnstile;
+    use zjkal\turnstile\Turnstile;
 
     class TurnstileTest extends TestCase
     {

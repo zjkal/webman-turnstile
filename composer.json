@@ -1,38 +1,30 @@
 {
-  "name": "zjkal/webman-turnstile",
-  "description": "Cloudflare Turnstile verification plugin for Webman framework",
-  "type": "webman-plugin",
-  "keywords": ["webman", "turnstile", "cloudflare", "captcha", "verification", "plugin"],
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "zjkal",
-      "email": "zjkal@qq.com"
+    "name": "zjkal/webman-turnstile",
+    "description": "Cloudflare Turnstile verification plugin for Webman framework",
+    "type": "library",
+    "keywords": ["webman", "turnstile", "cloudflare", "captcha", "verification", "plugin"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "zjkal",
+            "email": "zjkal@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "workerman/webman-framework": "^1.0 || ^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "zjkal\\turnstile\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "zjkal\\turnstile\\Tests\\": "tests/"
+        }
     }
-  ],
-  "require": {
-    "php": ">=7.4",
-    "workerman/webman-framework": "^1.0 || ^2.0"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^9.0"
-  },
-  "autoload": {
-    "psr-4": {
-      "plugin\\zjkal\\turnstile\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "plugin\\zjkal\\turnstile\\Tests\\": "tests/"
-    }
-  },
-  "extra": {
-    "webman": {
-      "config": "src/config/plugin"
-    }
-  },
-
-  "minimum-stability": "stable",
-  "prefer-stable": true
 }

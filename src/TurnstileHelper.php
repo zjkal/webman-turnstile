@@ -1,8 +1,8 @@
 <?php
 
-namespace plugin\zjkal\turnstile;
+namespace zjkal\turnstile;
 
-use plugin\zjkal\turnstile\Exception\TurnstileException;
+use zjkal\turnstile\Exception\TurnstileException;
 
 /**
  * Turnstile 助手类

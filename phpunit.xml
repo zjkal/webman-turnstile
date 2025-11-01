@@ -20,7 +20,21 @@
     </coverage>
     
     <logging>
-        <log type="coverage-html" target="coverage"/>
-        <log type="coverage-text" target="php://stdout" showUncoveredFiles="false"/>
+        <junit outputFile="junit.xml"/>
+        <testdoxHtml outputFile="testdox.html"/>
+        <testdoxText outputFile="testdox.txt"/>
     </logging>
+    
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <directory>src/Example</directory>
+        </exclude>
+        <report>
+            <html outputDirectory="coverage"/>
+            <text outputFile="php://stdout" showUncoveredFiles="false"/>
+        </report>
+    </coverage>
 </phpunit>

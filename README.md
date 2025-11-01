@@ -19,11 +19,11 @@ Webman Turnstile 是一个专为 Webman 框架设计的 Composer 插件，用于
 composer require zjkal/webman-turnstile
 ```
 
-安装完成后，插件配置文件会自动生成到 `config/plugin/zjkal/turnstile/app.php`。
+安装完成后，插件会自动加载内置配置。若需要自定义，请在主项目创建 `config/plugin/zjkal/turnstile/app.php` 覆盖默认配置。
 
 ## 配置
 
-编辑配置文件 `config/plugin/zjkal/turnstile/app.php`：
+可选：在主项目创建并编辑 `config/plugin/zjkal/turnstile/app.php` 以覆盖默认配置：
 
 ```php
 <?php

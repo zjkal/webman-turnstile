@@ -32,19 +32,7 @@
       "config": "src/config/plugin"
     }
   },
-  "scripts": {
-    "test": "phpunit",
-    "test-coverage": "phpunit --coverage-html coverage",
-    "post-install-cmd": [
-      "plugin\\zjkal\\turnstile\\Install::install"
-    ],
-    "post-update-cmd": [
-      "plugin\\zjkal\\turnstile\\Install::install"
-    ],
-    "post-uninstall-cmd": [
-      "plugin\\zjkal\\turnstile\\Install::uninstall"
-    ]
-  },
+
   "minimum-stability": "stable",
   "prefer-stable": true
 }

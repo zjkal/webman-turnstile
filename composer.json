@@ -36,10 +36,13 @@
     "test": "phpunit",
     "test-coverage": "phpunit --coverage-html coverage",
     "post-install-cmd": [
-      "plugin\\zjkal\\turnstile\\Install::postInstall"
+      "plugin\\zjkal\\turnstile\\Install::install"
     ],
     "post-update-cmd": [
-      "plugin\\zjkal\\turnstile\\Install::postUpdate"
+      "plugin\\zjkal\\turnstile\\Install::install"
+    ],
+    "post-uninstall-cmd": [
+      "plugin\\zjkal\\turnstile\\Install::uninstall"
     ]
   },
   "minimum-stability": "stable",

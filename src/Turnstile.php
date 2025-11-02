@@ -156,22 +156,61 @@ class Turnstile
      */
     private static function makeRequest(string $url, array $postData, int $timeout)
     {
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-
-        $response = curl_exec($ch);
-
-        if ($response === false) {
+        // 尝试使用 cURL（优先）
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            
+            $response = curl_exec($ch);
+            $error = curl_error($ch);
             curl_close($ch);
+            
+            if ($response !== false) {
+                return $response;
+            }
+            
+            // 如果 cURL 失败但没有错误信息，尝试使用 file_get_contents
+            if (empty($error)) {
+                // 继续尝试 file_get_contents
+            } else {
+                error_log("Turnstile cURL error: " . $error);
+                return false;
+            }
+        }
+        
+        // 备选方案：使用 file_get_contents
+        $options = [
+            'http' => [
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($postData),
+                'timeout' => $timeout,
+                'ignore_errors' => true
+            ],
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false
+            ]
+        ];
+
+        $context = stream_context_create($options);
+        
+        // 错误处理
+        $previousErrorReporting = error_reporting(0);
+        $response = file_get_contents($url, false, $context);
+        error_reporting($previousErrorReporting);
+
+        if ($response === FALSE) {
+            error_log("Turnstile file_get_contents error: Unable to connect to $url");
             return false;
         }
 
-        curl_close($ch);
         return $response;
     }
 
